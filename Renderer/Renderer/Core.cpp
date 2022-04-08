@@ -1,5 +1,13 @@
 #include "Core.h"
 
+Core::Core()
+{
+}
+
+Core::~Core()
+{
+}
+
 bool Core::Run()
 {
 	try
@@ -24,7 +32,7 @@ bool Core::Run()
 		const auto deltaTime = (SDL_GetTicks() - lastFrame) / 1000.0f;
 		//std::cout << "deltaTime: " << deltaTime << std::endl;
 
-		ProcessInputs();
+		ProcessInputs(deltaTime);
 		Update(deltaTime);
 		Render();
 
@@ -75,43 +83,33 @@ bool Core::Init()
 	glEnable(GL_DEPTH_TEST);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
+	SDL_CaptureMouse(SDL_TRUE);
+	SDL_ShowCursor(SDL_DISABLE);
+
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
+	mainCam = Camera(glm::vec3(0.f, 0.f, -5.f), glm::vec3(0.f, 1.f, 0.f), 90.f, 0.f, 10.f, 10.f);
+
 	CreateTestObjects();
+
+	SDL_WarpMouseInWindow(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
 	return true;
 }
 
-
-float rotSpd = 50.f;
-float angle = 0.f;
-
-bool dir = true;
-float triOffset = 0.f;
-float threshold = 0.7f;
-float incr = 1.f;
-
-GLuint uniformModel, uniformProj;
+GLuint uniformModel, uniformProj, uniformView;
 
 void Core::Update(float deltaTime)
 {
-	if (dir)
-		triOffset += incr * deltaTime;
-	else
-		triOffset -= incr * deltaTime;
-
-	angle += rotSpd * deltaTime;
-	if (angle > 360.f)
-		angle -= 360.f;
-
-	if (abs(triOffset) > threshold)
-		dir = !dir;
 }
 
-void Core::ProcessInputs()
+void Core::ProcessInputs(float deltaTime)
 {
 	SDL_Event e;
-	if (SDL_PollEvent(&e) > 0)
+	glm::vec2 mouseInput = glm::vec2(0.f);
+
+
+	while (SDL_PollEvent(&e) != 0)
 	{
 		switch (e.type)
 		{
@@ -124,8 +122,31 @@ void Core::ProcessInputs()
 				isRunning = false;
 				break;
 			}
+			break;
+
+		case SDL_MOUSEMOTION:
+			mouseInput.x = (float)e.motion.x - CENTRE_X;
+			mouseInput.y = (float)e.motion.y - CENTRE_Y;
+			SDL_WarpMouseInWindow(window, CENTRE_X, CENTRE_Y);
+			break;
 		}
 	}
+
+	auto keyStates = SDL_GetKeyboardState(NULL);
+
+	glm::vec2 moveDir = glm::vec2(0.f);
+
+	if (keyStates[SDL_SCANCODE_W])
+		moveDir.y = 1.f;
+	else if (keyStates[SDL_SCANCODE_S])
+		moveDir.y = -1.f;
+
+	if (keyStates[SDL_SCANCODE_D])
+		moveDir.x = 1.f;
+	else if (keyStates[SDL_SCANCODE_A])
+		moveDir.x = -1.f;
+
+	mainCam.HandleInput(deltaTime, moveDir, mouseInput);
 }
 
 void Core::Render()
@@ -139,17 +160,19 @@ void Core::Render()
 	glm::mat4 model(1.0f);
 	//auto tra = glm::translate(glm::mat4(1.f), glm::vec3(triOffset, 0.f, 0.f));
 	auto tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -3.f));
-	auto rot = glm::rotate(glm::mat4(1.f), angle * DEG_2_RAD, glm::vec3(0.f, 1.f, 0.f));
+	//auto rot = glm::rotate(glm::mat4(1.f), angle * DEG_2_RAD, glm::vec3(0.f, 1.f, 0.f));
 	auto scl = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
-	model = tra * rot * model;
-	//model = tra * model;
+	//model = tra * rot * model;
+	model = tra * model;
 	
 	auto aspect = (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT;
 	auto projMtx = glm::mat4(1.f);
 	projMtx = glm::perspective(glm::radians(60.f), aspect, .001f, 100.f);
 
-	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
-	glUniformMatrix4fv(uniformProj, 1, false, glm::value_ptr(projMtx));
+	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(uniformProj, 1, GL_FALSE, glm::value_ptr(projMtx));
+	auto view = mainCam.GetViewMatrix();
+	glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(view));
 
 	meshes[0]->RenderMesh();
 
@@ -205,4 +228,5 @@ void Core::CreateTestObjects()
 
 	uniformModel = shaders[0]->GetModelLocation();
 	uniformProj = shaders[0]->GetProjectionLocation();
+	uniformView = shaders[0]->GetViewLocation();
 }
