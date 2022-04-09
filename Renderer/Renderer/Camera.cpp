@@ -19,7 +19,7 @@ Camera::Camera(glm::vec3 initPos, glm::vec3 initUp, GLfloat initYaw, GLfloat ini
 void Camera::HandleInput(float deltaTime, glm::vec2 keyInput, glm::vec2 mouseInput)
 {
 	//std::cout << "keys" << keyInput.x << " " << keyInput.y << std::endl;
-	std::cout << "mouse" << mouseInput.x << " " << mouseInput.y << std::endl;
+	//std::cout << "mouse" << mouseInput.x << " " << mouseInput.y << std::endl;
 
 	yaw += rotSpd * mouseInput.x * deltaTime;
 	pitch -= rotSpd * mouseInput.y * deltaTime;
@@ -39,7 +39,8 @@ void Camera::HandleInput(float deltaTime, glm::vec2 keyInput, glm::vec2 mouseInp
 		pos += right * velocity.x;
 	}
 
-	//std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
+	//std::cout << "pos" << pos.x << " " << pos.y << " " << pos.z << std::endl;
+	//std::cout << "fwd" << front.x << " " << front.y << " " << front.z << std::endl;
 }
 
 glm::mat4 Camera::GetViewMatrix()
@@ -53,7 +54,7 @@ Camera::~Camera()
 
 void Camera::Update()
 {
-	std::cout << "yaw: " << yaw << "pitch: " << pitch << std::endl;
+	//std::cout << "yaw: " << yaw << "pitch: " << pitch << std::endl;
 
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));

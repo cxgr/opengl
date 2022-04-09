@@ -2,8 +2,8 @@
 
 Shader::Shader() :
 	shaderID(0),
-	uniformProjection(0),
-	uniformModel(0)
+	unifProjection(0),
+	unifModel(0)
 {
 }
 
@@ -23,19 +23,34 @@ void Shader::CreateFromString(const char* codeVert, const char* codeFrag)
 	CompileShader(codeVert, codeFrag);
 }
 
-GLuint Shader::GetProjectionLocation()
+GLuint Shader::GetShaderId()
 {
-	return uniformProjection;
+	return shaderID;
 }
 
-GLuint Shader::GetModelLocation()
+GLint Shader::GetProjectionLocation()
 {
-	return uniformModel;
+	return unifProjection;
 }
 
-GLuint Shader::GetViewLocation()
+GLint Shader::GetModelLocation()
 {
-	return uniformView;
+	return unifModel;
+}
+
+GLint Shader::GetViewLocation()
+{
+	return unifView;
+}
+
+GLint Shader::GetAmbientIntensityLocation()
+{
+	return unifAmbIntesity;
+}
+
+GLint Shader::GetAmbientColorLocation()
+{
+	return unifAmbColor;
 }
 
 void Shader::UseShader()
@@ -51,8 +66,8 @@ void Shader::ClearShader()
 		shaderID = 0;
 	}
 
-	uniformModel = 0;
-	uniformProjection = 0;
+	unifModel = 0;
+	unifProjection = 0;
 }
 
 void Shader::CompileShader(const char* codeVert, const char* codeFrag)
@@ -85,9 +100,11 @@ void Shader::CompileShader(const char* codeVert, const char* codeFrag)
 		return;
 	}
 
-	uniformModel = glGetUniformLocation(shaderID, "mtxModel");
-	uniformProjection = glGetUniformLocation(shaderID, "mtxProj");
-	uniformView = glGetUniformLocation(shaderID, "mtxView");
+	unifModel = glGetUniformLocation(shaderID, "mtxModel");
+	unifProjection = glGetUniformLocation(shaderID, "mtxProj");
+	unifView = glGetUniformLocation(shaderID, "mtxView");
+	unifAmbColor = glGetUniformLocation(shaderID, "dirLight.color");
+	unifAmbIntesity = glGetUniformLocation(shaderID, "dirLight.ambientIntensity");
 }
 
 void Shader::AddShader(GLuint programId, const char* shaderCode, GLenum shaderType)

@@ -16,9 +16,13 @@ public:
 	void CreateFromFiles(const char* fileVert, const char* fileFrag);
 	void CreateFromString(const char* codeVert, const char* codeFrag);
 
-	GLuint GetProjectionLocation();
-	GLuint GetModelLocation();
-	GLuint GetViewLocation();
+	GLuint GetShaderId();
+
+	GLint GetProjectionLocation();
+	GLint GetModelLocation();
+	GLint GetViewLocation();
+	GLint GetAmbientIntensityLocation();
+	GLint GetAmbientColorLocation();
 
 	void UseShader();
 	void ClearShader();
@@ -26,7 +30,7 @@ public:
 
 private:
 	GLuint shaderID;
-	GLuint uniformProjection, uniformModel, uniformView;
+	GLint unifProjection, unifModel, unifView, unifAmbIntesity, unifAmbColor;
 
 	void CompileShader(const char* codeVert, const char* codeFrag);
 	void AddShader(GLuint programId, const char* shaderCode, GLenum shaderType);

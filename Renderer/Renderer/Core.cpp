@@ -97,7 +97,6 @@ bool Core::Init()
 	return true;
 }
 
-GLuint uniformModel, uniformProj, uniformView;
 
 void Core::Update(float deltaTime)
 {
@@ -149,6 +148,16 @@ void Core::ProcessInputs(float deltaTime)
 	mainCam.HandleInput(deltaTime, moveDir, mouseInput);
 }
 
+GLint uniformModel = 0, uniformProj = 0, uniformView = 0, uniformAmbientIntensity = 0, uniformAmbientColor = 0;
+
+Texture texBrick;
+Texture texDirt;
+
+static const char* vShader = "Shaders/test.vert";
+static const char* fShader = "Shaders/test.frag";
+
+Light mainLight;
+
 void Core::Render()
 {
 	glClearColor(0.0f, 0.1f, 0.2f, 1.0f);
@@ -156,6 +165,14 @@ void Core::Render()
 	///////////////////////////////////////////
 
 	shaders[0]->UseShader();
+
+	uniformModel = shaders[0]->GetModelLocation();
+	uniformProj = shaders[0]->GetProjectionLocation();
+	uniformView = shaders[0]->GetViewLocation();
+	uniformAmbientColor = shaders[0]->GetAmbientColorLocation();
+	uniformAmbientIntensity = shaders[0]->GetAmbientIntensityLocation();
+
+	mainLight.UseLight(uniformAmbientColor, uniformAmbientIntensity);
 
 	glm::mat4 model(1.0f);
 	//auto tra = glm::translate(glm::mat4(1.f), glm::vec3(triOffset, 0.f, 0.f));
@@ -174,10 +191,13 @@ void Core::Render()
 	auto view = mainCam.GetViewMatrix();
 	glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(view));
 
+	texBrick.UseTexture();
 	meshes[0]->RenderMesh();
 
 	model = glm::translate(glm::mat4(1.f), glm::vec3(2.f, 0.f, -4.f));
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+
+	texDirt.UseTexture();
 	meshes[1]->RenderMesh();
 
 	glUseProgram(0);
@@ -191,9 +211,6 @@ void Core::Cleanup()
 	SDL_Quit();
 }
 
-static const char* vShader = "Shaders/test.vert";
-
-static const char* fShader = "Shaders/test.frag";
 
 void Core::CreateTestObjects()
 {
@@ -208,9 +225,16 @@ void Core::CreateTestObjects()
 	std::vector<GLfloat> verts =
 	{
 		-1.f, -1.f, 0.f,
+		0.f, 0.f,
+
 		0.f, -1.f, 1.f,
+		0.5f, 0.f,
+
 		1.f, -1.f, 0.f,
-		0.f, 1.f, 0.f
+		1.f, 0.f,
+
+		0.f, 1.f, 0.f,
+		0.5f, 1.0f
 	};
 
 	Mesh* m1 = new Mesh();
@@ -226,7 +250,10 @@ void Core::CreateTestObjects()
 	s1->CreateFromFiles(vShader, fShader);
 	shaders.push_back(s1);
 
-	uniformModel = shaders[0]->GetModelLocation();
-	uniformProj = shaders[0]->GetProjectionLocation();
-	uniformView = shaders[0]->GetViewLocation();
+	texBrick = Texture("Assets/brick.png");
+	texBrick.LoadTexture();
+	texDirt = Texture("Assets/dirt.png");
+	texDirt.LoadTexture();
+
+	mainLight = Light(glm::vec3(.1f, .8f, .4f), 1.f);
 }
