@@ -83,6 +83,9 @@ bool Core::Init()
 	glEnable(GL_DEPTH_TEST);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+
 	SDL_CaptureMouse(SDL_TRUE);
 	SDL_ShowCursor(SDL_DISABLE);
 
@@ -97,9 +100,34 @@ bool Core::Init()
 	return true;
 }
 
+GLint uniformModel = 0;
+GLint uniformProj = 0;
+GLint uniformView = 0;
+GLint uniformEyePos = 0;
+
+GLint unifSpecIntensity = 0;
+GLint unifShininess = 0;
+
+Texture texBrick;
+Texture texDirt;
+Texture texFloor;
+
+Material matShiny;
+Material matDull;
+
+static const char* vShader = "Shaders/test.vert";
+static const char* fShader = "Shaders/test.frag";
+
+DirectionalLight mainLight;
+PointLight pointLights[MAX_POINT_LIGHTS];
+GLint pointLightCount = 0;
+SpotLight spotLights[MAX_SPOT_LIGHTS];
+GLint spotLightCount = 0;
 
 void Core::Update(float deltaTime)
 {
+	auto flOffset = mainCam.GetPosition() + mainCam.GetUp() * -.4f;
+	spotLights[0].UpdateTransform(flOffset, mainCam.GetForward());
 }
 
 void Core::ProcessInputs(float deltaTime)
@@ -148,16 +176,6 @@ void Core::ProcessInputs(float deltaTime)
 	mainCam.HandleInput(deltaTime, moveDir, mouseInput);
 }
 
-GLint uniformModel = 0, uniformProj = 0, uniformView = 0, uniformAmbientIntensity = 0, uniformAmbientColor = 0;
-
-Texture texBrick;
-Texture texDirt;
-
-static const char* vShader = "Shaders/test.vert";
-static const char* fShader = "Shaders/test.frag";
-
-Light mainLight;
-
 void Core::Render()
 {
 	glClearColor(0.0f, 0.1f, 0.2f, 1.0f);
@@ -169,18 +187,23 @@ void Core::Render()
 	uniformModel = shaders[0]->GetModelLocation();
 	uniformProj = shaders[0]->GetProjectionLocation();
 	uniformView = shaders[0]->GetViewLocation();
-	uniformAmbientColor = shaders[0]->GetAmbientColorLocation();
-	uniformAmbientIntensity = shaders[0]->GetAmbientIntensityLocation();
+	uniformEyePos = shaders[0]->GetCamPosLocation();
 
-	mainLight.UseLight(uniformAmbientColor, uniformAmbientIntensity);
+	unifSpecIntensity = shaders[0]->GetSpecIntensityLocation();
+	unifShininess = shaders[0]->GetShininessLocation();
+
+
+	shaders[0]->SetDirectionalLight(&mainLight);
+	shaders[0]->SetPointLights(pointLights, pointLightCount);
+	shaders[0]->SetSpotLights(spotLights, 1);
 
 	glm::mat4 model(1.0f);
 	//auto tra = glm::translate(glm::mat4(1.f), glm::vec3(triOffset, 0.f, 0.f));
 	auto tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -3.f));
-	//auto rot = glm::rotate(glm::mat4(1.f), angle * DEG_2_RAD, glm::vec3(0.f, 1.f, 0.f));
+	auto rot = glm::rotate(glm::mat4(1.f), 3.14f, glm::vec3(0.f, 1.f, 0.f));
 	auto scl = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 	//model = tra * rot * model;
-	model = tra * model;
+	model = tra * rot * model;
 	
 	auto aspect = (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT;
 	auto projMtx = glm::mat4(1.f);
@@ -190,15 +213,24 @@ void Core::Render()
 	glUniformMatrix4fv(uniformProj, 1, GL_FALSE, glm::value_ptr(projMtx));
 	auto view = mainCam.GetViewMatrix();
 	glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(view));
+	glUniform3fv(uniformEyePos, 1, glm::value_ptr(mainCam.GetPosition()));
 
 	texBrick.UseTexture();
+	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
 	meshes[0]->RenderMesh();
 
 	model = glm::translate(glm::mat4(1.f), glm::vec3(2.f, 0.f, -4.f));
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 
 	texDirt.UseTexture();
+	matDull.UseMaterial(unifSpecIntensity, unifShininess);
 	meshes[1]->RenderMesh();
+
+	model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -1.5f, 0.f));
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	texFloor.UseTexture();
+	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
+	meshes[2]->RenderMesh();
 
 	glUseProgram(0);
 
@@ -224,18 +256,49 @@ void Core::CreateTestObjects()
 
 	std::vector<GLfloat> verts =
 	{
-		-1.f, -1.f, 0.f,
-		0.f, 0.f,
+		-1.f, -1.f, -.6f, //xyz
+		0.f, 0.f, //uv
+		0.f, 0.f, 0.f, //nrm
 
 		0.f, -1.f, 1.f,
 		0.5f, 0.f,
+		0.f, 0.f, 0.f,
 
-		1.f, -1.f, 0.f,
+		1.f, -1.f, -0.6f,
 		1.f, 0.f,
+		0.f, 0.f, 0.f,
 
 		0.f, 1.f, 0.f,
-		0.5f, 1.0f
+		0.5f, 1.0f,
+		0.f, 0.f, 0.f
 	};
+
+	std::vector<GLfloat> floorVerts =
+	{
+		-10.f, 0.f, -10.f,
+		0.f, 0.f,
+		0.f, 1.f, 0.f,
+
+		10.f, 0.f, -10.f,
+		10.f, 0.f,
+		0.f, 1.f, 0.f,
+
+		-10.f, 0.f, 10.f,
+		0.f, 10.f,
+		0.f, 1.f, 0.f,
+
+		10.f, 0.f, 10.f,
+		10.f, 10.f,
+		0.f, 1.f, 0.f
+	};
+
+	std::vector<unsigned> floorIndices =
+	{
+		0, 1, 2,
+		1, 3, 2
+	};
+
+	Mesh::CalculateAvgNormals(indices.data(), indices.size(), verts.data(), verts.size(), 8, 5);
 
 	Mesh* m1 = new Mesh();
 	m1->CreateMesh(verts.data(), verts.size(), indices.data(), indices.size());
@@ -245,15 +308,38 @@ void Core::CreateTestObjects()
 	m2->CreateMesh(verts.data(), verts.size(), indices.data(), indices.size());
 	meshes.push_back(m2);
 
+	Mesh* floorObj = new Mesh();
+	floorObj->CreateMesh(floorVerts.data(), floorVerts.size(), floorIndices.data(), floorIndices.size());
+	meshes.push_back(floorObj);
+
 	Shader* s1 = new Shader();
-	//s1->CreateFromString(vShader, fShader);
 	s1->CreateFromFiles(vShader, fShader);
 	shaders.push_back(s1);
 
 	texBrick = Texture("Assets/brick.png");
-	texBrick.LoadTexture();
+	texBrick.LoadTexture(false);
 	texDirt = Texture("Assets/dirt.png");
-	texDirt.LoadTexture();
+	texDirt.LoadTexture(false);
+	//texFloor = Texture("Assets/plain.png");
+	texFloor = Texture("Assets/dirt.png");
+	texFloor.LoadTexture(true);
 
-	mainLight = Light(glm::vec3(.1f, .8f, .4f), 1.f);
+	matShiny = Material(1.f, 32);
+	matDull = Material(.3f, 4);
+
+	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.f, .05f, glm::vec3(1.f, -1.f, 2.f));
+	
+	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, 1.f,
+		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f);
+	pointLightCount++;
+	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, 1.f,
+		glm::vec3(2.f, 1.f, 0.f), .3f, .2f, .1f);
+	pointLightCount++;
+	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, 1.f,
+		glm::vec3(.5f, 1.5f, -8.f), .3f, .2f, .1f);
+	pointLightCount++;
+
+	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 2.f,
+		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f);
+	spotLightCount++;
 }

@@ -48,6 +48,21 @@ glm::mat4 Camera::GetViewMatrix()
 	return glm::lookAt(pos, pos + front, up);
 }
 
+glm::vec3 Camera::GetPosition()
+{
+	return pos;
+}
+
+glm::vec3 Camera::GetForward()
+{
+	return glm::normalize(front);
+}
+
+glm::vec3 Camera::GetUp()
+{
+	return glm::normalize(up);
+}
+
 Camera::~Camera()
 {
 }

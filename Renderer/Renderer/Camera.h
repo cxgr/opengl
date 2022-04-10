@@ -14,6 +14,9 @@ public:
 	void HandleInput(float deltaTime, glm::vec2 keyInput, glm::vec2 mouseInput);
 
 	glm::mat4 GetViewMatrix();
+	glm::vec3 GetPosition();
+	glm::vec3 GetForward();
+	glm::vec3 GetUp();
 
 	~Camera();
 

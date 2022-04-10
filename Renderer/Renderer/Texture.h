@@ -10,7 +10,7 @@ public:
 	Texture(char const* fileLoc);
 	~Texture();
 
-	void LoadTexture();
+	void LoadTexture(bool isTiling);
 	void UseTexture();
 	void ClearTexture();
 

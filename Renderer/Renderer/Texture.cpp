@@ -17,7 +17,7 @@ Texture::~Texture()
 	ClearTexture();
 }
 
-void Texture::LoadTexture()
+void Texture::LoadTexture(bool isTiling)
 {
 	unsigned char* texData = stbi_load(fileLocation, &wid, &hei, &bitDepth, 0);
 	if (!texData)
@@ -26,8 +26,8 @@ void Texture::LoadTexture()
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,  isTiling ? GL_REPEAT : GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, isTiling ? GL_REPEAT : GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 

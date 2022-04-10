@@ -7,11 +7,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Constants.h"
 #include "Mesh.h"
 #include "Shader.h"
 #include "Camera.h"
 #include "Texture.h"
-#include "Light.h"
+#include "DirectionalLight.h"
+#include "SpotLight.h"
+#include "PointLight.h"
+#include "Material.h"
 
 class Core
 {
@@ -21,8 +25,8 @@ public:
 
 	const Uint32 FPS = 60;
 	const Uint32 FRAME_RATE = 1000 / FPS;
-	const int WINDOW_WIDTH = 800;
-	const int WINDOW_HEIGHT = 600;
+	const int WINDOW_WIDTH = 1600;
+	const int WINDOW_HEIGHT = 900;
 	const int CENTRE_X = WINDOW_WIDTH / 2;
 	const int CENTRE_Y = WINDOW_HEIGHT / 2;
 
