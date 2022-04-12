@@ -15,7 +15,7 @@ Mesh::~Mesh()
 	ClearMesh();
 }
 
-void Mesh::CreateMesh(GLfloat* verts, unsigned numVerts, unsigned* indices, unsigned numIndices)
+void Mesh::CreateMesh(GLfloat* verts, size_t numVerts, unsigned* indices, size_t numIndices)
 {
 	indexCount = numIndices;
 

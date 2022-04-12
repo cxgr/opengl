@@ -8,7 +8,7 @@ public:
 	Mesh();
 	~Mesh();
 
-	void CreateMesh(GLfloat* verts, unsigned int numVerts, unsigned int* indices, unsigned int numIndices);
+	void CreateMesh(GLfloat* verts, size_t numVerts, unsigned* indices, size_t numIndices);
 	void RenderMesh();
 	void ClearMesh();
 
@@ -17,6 +17,6 @@ public:
 
 private:
 	GLuint VAO, VBO, IBO;
-	GLsizei indexCount;
+	size_t indexCount;
 };
 

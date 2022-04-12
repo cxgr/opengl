@@ -83,8 +83,8 @@ bool Core::Init()
 	glEnable(GL_DEPTH_TEST);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_FRONT);
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
 
 	SDL_CaptureMouse(SDL_TRUE);
 	SDL_ShowCursor(SDL_DISABLE);
@@ -124,11 +124,13 @@ GLint pointLightCount = 0;
 SpotLight spotLights[MAX_SPOT_LIGHTS];
 GLint spotLightCount = 0;
 
+ThreeDModel model0, model1;
+
 void Core::Update(float deltaTime)
 {
 	auto flOffset = mainCam.GetPosition() + mainCam.GetUp() * -.4f;
 	spotLights[0].UpdateTransform(flOffset, mainCam.GetForward());
-}
+} 
 
 void Core::ProcessInputs(float deltaTime)
 {
@@ -201,7 +203,6 @@ void Core::Render()
 	//auto tra = glm::translate(glm::mat4(1.f), glm::vec3(triOffset, 0.f, 0.f));
 	auto tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -3.f));
 	auto rot = glm::rotate(glm::mat4(1.f), 3.14f, glm::vec3(0.f, 1.f, 0.f));
-	auto scl = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 	//model = tra * rot * model;
 	model = tra * rot * model;
 	
@@ -231,6 +232,20 @@ void Core::Render()
 	texFloor.UseTexture();
 	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
 	meshes[2]->RenderMesh();
+
+
+	tra = glm::translate(glm::mat4(1.f), glm::vec3(-8.f, 0.f, 4.f));
+	auto scl = glm::scale(glm::mat4(1.f), glm::vec3(0.008f));
+	model = tra * scl * glm::mat4(1.f);
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	model0.Render();
+
+
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(.3f));
+	rot = glm::rotate(glm::mat4(1.f), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
+	model = rot * scl * glm::mat4(1.f);
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	model1.Render();
 
 	glUseProgram(0);
 
@@ -294,8 +309,8 @@ void Core::CreateTestObjects()
 
 	std::vector<unsigned> floorIndices =
 	{
-		0, 1, 2,
-		1, 3, 2
+		0, 2, 1,
+		1, 2, 3
 	};
 
 	Mesh::CalculateAvgNormals(indices.data(), indices.size(), verts.data(), verts.size(), 8, 5);
@@ -320,14 +335,14 @@ void Core::CreateTestObjects()
 	texBrick.LoadTexture(false);
 	texDirt = Texture("Assets/dirt.png");
 	texDirt.LoadTexture(false);
-	//texFloor = Texture("Assets/plain.png");
+	//texFloor = Texture("Assets/blank.png");
 	texFloor = Texture("Assets/dirt.png");
 	texFloor.LoadTexture(true);
 
 	matShiny = Material(1.f, 32);
 	matDull = Material(.3f, 4);
 
-	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.f, .05f, glm::vec3(1.f, -1.f, 2.f));
+	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.f, .5f, glm::vec3(1.f, -1.f, 2.f));
 	
 	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, 1.f,
 		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f);
@@ -342,4 +357,7 @@ void Core::CreateTestObjects()
 	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 2.f,
 		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f);
 	spotLightCount++;
+
+	model0.LoadModel("Assets\\x-wing.obj");
+	model1.LoadModel("Assets\\uh60.obj");
 }

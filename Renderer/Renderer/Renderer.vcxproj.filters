@@ -54,6 +54,9 @@
     <ClCompile Include="SpotLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ThreeDModel.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -91,6 +94,9 @@
     </ClInclude>
     <ClInclude Include="SpotLight.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreeDModel.h">
+      <Filter>Assets</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

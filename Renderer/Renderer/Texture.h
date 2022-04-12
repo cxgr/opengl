@@ -1,16 +1,18 @@
 #pragma once
 
 #include <glew.h>
+#include <iostream>
+#include <stdexcept>
 #include "stb_image.h"
 
 class Texture
 {
 public:
 	Texture();
-	Texture(char const* fileLoc);
+	Texture(const char* fileLoc);
 	~Texture();
 
-	void LoadTexture(bool isTiling);
+	bool LoadTexture(bool isTiled = false);
 	void UseTexture();
 	void ClearTexture();
 

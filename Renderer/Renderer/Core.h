@@ -6,6 +6,7 @@
 #include <vector>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <assimp/Importer.hpp>
 
 #include "Constants.h"
 #include "Mesh.h"
@@ -16,6 +17,7 @@
 #include "SpotLight.h"
 #include "PointLight.h"
 #include "Material.h"
+#include "ThreeDModel.h"
 
 class Core
 {

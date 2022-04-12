@@ -60,7 +60,7 @@ vec4 CalcLightByDirection(Light light, vec3 direction)
 {
 	vec4 ambColor = vec4(light.color, 1.f) * light.ambientIntensity;
 	
-	float diffuseFactor = dot(normalize(Normal), normalize(direction));
+	float diffuseFactor = dot(normalize(Normal), normalize(direction)); 
 	diffuseFactor = max(diffuseFactor, 0.f);
 	vec4 diffuseColor = vec4(light.color, 1.f) * light.diffuseIntensity * diffuseFactor;
 	
@@ -68,7 +68,7 @@ vec4 CalcLightByDirection(Light light, vec3 direction)
 	if (diffuseFactor > 0.f)
 	{
 		vec3 fragToEyeDir = normalize(eyePos - FragWorldPos);
-		vec3 reflectedLightDir = normalize(reflect(-direction, normalize(Normal)));
+		vec3 reflectedLightDir = normalize(reflect(direction, normalize(Normal)));
 		float specFactor = dot(fragToEyeDir, reflectedLightDir);
 		if (specFactor > 0.f)
 		{

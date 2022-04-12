@@ -2,8 +2,6 @@
 
 #include "Texture.h"
 
-#include <stdexcept>
-
 Texture::Texture() : texId(0), wid(0), hei(0), bitDepth(0), fileLocation("")
 {
 }
@@ -17,25 +15,31 @@ Texture::~Texture()
 	ClearTexture();
 }
 
-void Texture::LoadTexture(bool isTiling)
+bool Texture::LoadTexture(bool isTiled)
 {
-	unsigned char* texData = stbi_load(fileLocation, &wid, &hei, &bitDepth, 0);
+	unsigned char* texData = stbi_load(fileLocation, &wid, &hei, &bitDepth, 4);
 	if (!texData)
-		throw std::runtime_error(std::string("failed to load texture: ").append(fileLocation));
+	{
+		std::cout << "failed to load texture: " << fileLocation << std::endl;
+		return false;
+	}
 
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,  isTiling ? GL_REPEAT : GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, isTiling ? GL_REPEAT : GL_CLAMP_TO_BORDER);
+	auto wrapType = isTiled ? GL_REPEAT : GL_CLAMP_TO_BORDER;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapType);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapType);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+	
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wid, hei, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	stbi_image_free(texData);
+
+	return true;
 }
 
 void Texture::UseTexture()
