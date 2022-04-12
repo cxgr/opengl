@@ -123,9 +123,10 @@ void ThreeDModel::LoadMaterials(const aiScene* scene)
 			}
 		}
 
-		if (!textures[i])
+		if ( !textures[i])
 		{
 			textures[i] = new Texture("Assets/blank.png");
+			textures[i]->LoadTexture(false);
 		}
 	}
 }

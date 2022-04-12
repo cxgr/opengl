@@ -124,7 +124,7 @@ GLint pointLightCount = 0;
 SpotLight spotLights[MAX_SPOT_LIGHTS];
 GLint spotLightCount = 0;
 
-ThreeDModel model0, model1;
+ThreeDModel model0, model1, model2;
 
 void Core::Update(float deltaTime)
 {
@@ -197,7 +197,7 @@ void Core::Render()
 
 	shaders[0]->SetDirectionalLight(&mainLight);
 	shaders[0]->SetPointLights(pointLights, pointLightCount);
-	shaders[0]->SetSpotLights(spotLights, 1);
+	shaders[0]->SetSpotLights(spotLights, spotLightCount);
 
 	glm::mat4 model(1.0f);
 	//auto tra = glm::translate(glm::mat4(1.f), glm::vec3(triOffset, 0.f, 0.f));
@@ -218,14 +218,14 @@ void Core::Render()
 
 	texBrick.UseTexture();
 	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
-	meshes[0]->RenderMesh();
+	//meshes[0]->RenderMesh();
 
 	model = glm::translate(glm::mat4(1.f), glm::vec3(2.f, 0.f, -4.f));
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 
 	texDirt.UseTexture();
 	matDull.UseMaterial(unifSpecIntensity, unifShininess);
-	meshes[1]->RenderMesh();
+	//meshes[1]->RenderMesh();
 
 	model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -1.5f, 0.f));
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
@@ -246,6 +246,12 @@ void Core::Render()
 	model = rot * scl * glm::mat4(1.f);
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	model1.Render();
+	
+	model = glm::mat4(1.f);
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(30.f));
+	model = scl * model;
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	model2.Render();
 
 	glUseProgram(0);
 
@@ -342,7 +348,7 @@ void Core::CreateTestObjects()
 	matShiny = Material(1.f, 32);
 	matDull = Material(.3f, 4);
 
-	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.f, .5f, glm::vec3(1.f, -1.f, 2.f));
+	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.f, .75f, glm::vec3(0.f, -1.f, 1.f));
 	
 	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, 1.f,
 		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f);
@@ -356,8 +362,9 @@ void Core::CreateTestObjects()
 
 	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 2.f,
 		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f);
-	spotLightCount++;
+	//spotLightCount++;
 
 	model0.LoadModel("Assets\\x-wing.obj");
 	model1.LoadModel("Assets\\uh60.obj");
+	model2.LoadModel("Assets\\sphere.obj");
 }
