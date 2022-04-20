@@ -8,8 +8,8 @@ SpotLight::SpotLight() : PointLight(),
 }
 
 SpotLight::SpotLight(glm::vec3 col, float ambIntensity, GLfloat difIntensity, glm::vec3 pos, glm::vec3 dir, GLfloat con,
-	GLfloat lin, GLfloat exp, GLfloat edg) :
-	PointLight(col, ambIntensity, difIntensity, pos, con, lin, exp),
+	GLfloat lin, GLfloat exp, GLfloat edg, GLsizei shadowRes) :
+	PointLight(col, ambIntensity, difIntensity, pos, con, lin, exp, shadowRes),
 	direction(dir),
 	edge(edg),
 	processedEdge(cosf(glm::radians(edg)))

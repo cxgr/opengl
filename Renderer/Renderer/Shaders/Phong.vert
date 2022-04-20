@@ -8,14 +8,20 @@ out vec4 vCol;
 out vec2 TexCoord0;
 out vec3 Normal;
 out vec3 FragWorldPos;
+out vec4 DirLightSpacePos;
 
 uniform mat4 mtxModel;
 uniform mat4 mtxProj;
 uniform mat4 mtxView;
 
+uniform mat4 mtxDirLightTransform; //p * v
+
 void main()
 {
 	gl_Position =  mtxProj * mtxView * mtxModel * vec4(pos, 1.0);
+	
+	DirLightSpacePos = mtxDirLightTransform * mtxModel * vec4(pos, 1.0);
+	
 	vCol = vec4(clamp(pos, 0.0f, 1.0f), 1.0f);
 	
 	TexCoord0 = tex0;

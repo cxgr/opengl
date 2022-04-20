@@ -16,13 +16,23 @@ Shader::~Shader()
 void Shader::CreateFromFiles(const char* fileVert, const char* fileFrag)
 {
 	const auto vertCode = ReadFile(fileVert);
-	const auto fragCode = ReadFile(fileFrag);
-	CompileShader(vertCode.c_str(), fragCode.c_str());
+	if (fileFrag)
+	{
+		const auto fragCode = ReadFile(fileFrag);
+		CompileShader(vertCode.c_str(), fragCode.c_str());
+	}
+	else
+	{
+		CompileShader(vertCode.c_str());
+	}
 }
 
 void Shader::CreateFromString(const char* codeVert, const char* codeFrag)
 {
-	CompileShader(codeVert, codeFrag);
+	if (codeFrag)
+		CompileShader(codeVert, codeFrag);
+	else
+		CompileShader(codeVert);
 }
 
 GLuint Shader::GetShaderId()
@@ -138,6 +148,26 @@ void Shader::SetSpotLights(SpotLight* spotLights, GLint lightCount)
 	}
 }
 
+void Shader::SetTexture(GLint textureUnit)
+{
+	glUniform1i(unifTexture, textureUnit);
+}
+
+void Shader::SetDirShadowMap(GLint textureUnit)
+{
+	glUniform1i(uniformDirShadowMap, textureUnit);
+}
+
+void Shader::SetDirLightTransform(glm::mat4* transform)
+{
+	glUniformMatrix4fv(unifDirLightTransform, 1, GL_FALSE, value_ptr(*transform));
+}
+
+void Shader::SetDirLightTransform(glm::mat4 transform)
+{
+	glUniformMatrix4fv(unifDirLightTransform, 1, GL_FALSE, value_ptr(transform));
+}
+
 void Shader::UseShader()
 {
 	glUseProgram(shaderID);
@@ -162,7 +192,8 @@ void Shader::CompileShader(const char* codeVert, const char* codeFrag)
 		throw std::runtime_error("shader compilation failed");
 
 	AddShader(shaderID, codeVert, GL_VERTEX_SHADER);
-	AddShader(shaderID, codeFrag, GL_FRAGMENT_SHADER);
+	if (codeFrag)
+		AddShader(shaderID, codeFrag, GL_FRAGMENT_SHADER);
 
 	GLint result = 0;
 	GLchar errorLog[1024] = { 0 };
@@ -258,6 +289,10 @@ void Shader::CompileShader(const char* codeVert, const char* codeFrag)
 		snprintf(locBuff, sizeof(locBuff), "spotLights[%d].edge", i);
 		uniformSpotLights[i].unifEdge = glGetUniformLocation(shaderID, locBuff);
 	}
+
+	unifTexture = glGetUniformLocation(shaderID, "texture0");
+	unifDirLightTransform = glGetUniformLocation(shaderID, "mtxDirLightTransform");
+	uniformDirShadowMap = glGetUniformLocation(shaderID, "dirShadowMap");
 }
 
 void Shader::AddShader(GLuint programId, const char* shaderCode, GLenum shaderType)

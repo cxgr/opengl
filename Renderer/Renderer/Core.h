@@ -32,6 +32,8 @@ public:
 	const int CENTRE_X = WINDOW_WIDTH / 2;
 	const int CENTRE_Y = WINDOW_HEIGHT / 2;
 
+	const int SHADOW_RESOLUTION = 2048;
+
 	const float DEG_2_RAD = glm::pi<float>() / 180.f;
 
 	Uint32 lastFrame = 0;
@@ -42,14 +44,22 @@ public:
 	bool Init();
 	void Update(float deltaTime);
 	void ProcessInputs(float deltaTime);
-	void Render();
+
+	void Render_Central();
+	void Render_Pass_DirShadow(DirectionalLight* dl);
+	void Render_Pass_Main(glm::mat4 projection, glm::mat4 view);
+	void Render_SceneObjects();
+
 	void Cleanup();
 
 private:
 
 	std::vector<Mesh*> meshes;
 	std::vector<Shader*> shaders;
+	Shader dirShadowShader;
 	Camera mainCam;
+	glm::mat4 mtxProjection;
 
+	void LoadShaders();
 	void CreateTestObjects();
 };

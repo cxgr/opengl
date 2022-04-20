@@ -4,6 +4,7 @@ in vec4 vCol;
 in vec2 TexCoord0;
 in vec3 Normal;
 in vec3 FragWorldPos;
+in vec4 DirLightSpacePos;
 
 out vec4 outputCol;
 
@@ -51,12 +52,43 @@ uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform int spotLightCount;
 uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 
-uniform sampler2D sampler0;
+uniform sampler2D texture0;
+uniform sampler2D dirShadowMap;
+
 uniform Material material;
 
 uniform vec3 eyePos;
 
-vec4 CalcLightByDirection(Light light, vec3 direction)
+float CalcDirShadowFactor(DirectionalLight light)
+{
+	vec3 projCoords = DirLightSpacePos.xyz / DirLightSpacePos.w;
+	projCoords = projCoords * 0.5 + 0.5;
+	float currentDepth = projCoords.z;
+	
+	//bias
+	vec3 bias_nrm = normalize(Normal);
+	vec3 bias_lightdir = normalize(-light.direction);
+	float bias = max(0.05 * (1 - dot(bias_nrm, bias_lightdir)), 0.005);
+	
+	float shadow = 0.0;
+	vec2 texelSize = 1.0 / textureSize(dirShadowMap, 0);
+	for (int x = -1; x <= 1; ++x)
+	{
+		for (int y = -1; y <= 1; ++y)
+		{
+			float pcfDepth = texture(dirShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 1.f : 0.f;
+		}		
+	}
+	shadow /= 9.0;
+	
+	if (projCoords.z > 1.0)
+		shadow = 0.0;
+	
+	return shadow;
+}
+
+vec4 CalcLightByDirection(Light light, vec3 direction, float shadowFactor)
 {
 	vec4 ambColor = vec4(light.color, 1.f) * light.ambientIntensity;
 	
@@ -77,12 +109,13 @@ vec4 CalcLightByDirection(Light light, vec3 direction)
 		}
 	}
 	
-	return ambColor + diffuseColor + specColor;
+	return ambColor + (1.0 - shadowFactor) * (diffuseColor + specColor);
 }
 
 vec4 CalcDirectionalLight()
 {
-	return CalcLightByDirection(dirLight.base, -dirLight.direction);
+	float shadowFactor = CalcDirShadowFactor(dirLight);
+	return CalcLightByDirection(dirLight.base, -dirLight.direction, shadowFactor);
 }
 
 vec4 CalcPointLight(PointLight pLight)
@@ -91,7 +124,7 @@ vec4 CalcPointLight(PointLight pLight)
 	float dist = length(dir);
 	dir = normalize(dir);
 		
-	vec4 col = CalcLightByDirection(pLight.base, dir);
+	vec4 col = CalcLightByDirection(pLight.base, dir, 0.f);
 	float attenuation = pLight.exponent * dist * dist + 
 						pLight.linear * dist +
 						pLight.constant;
@@ -145,5 +178,5 @@ void main()
 	finalLight += CalcPointLights();
 	finalLight += CalcSpotLights();
 	
-	outputCol = texture(sampler0, TexCoord0) * finalLight;
+	outputCol = texture(texture0, TexCoord0) * finalLight;
 }

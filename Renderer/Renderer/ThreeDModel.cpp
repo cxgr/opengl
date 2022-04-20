@@ -12,7 +12,10 @@ void ThreeDModel::LoadModel(const std::string& fileName, bool smoothNormals)
 {
 	Assimp::Importer importer;
 	auto flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices;
-	flags |= smoothNormals ? aiProcess_GenSmoothNormals : aiProcess_GenNormals;
+	if (smoothNormals)
+		flags |= aiProcess_GenSmoothNormals;
+	else
+		flags |= aiProcess_GenNormals;
 
 	const aiScene* scene = importer.ReadFile(fileName, flags);
 

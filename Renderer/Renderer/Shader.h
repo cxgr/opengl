@@ -6,6 +6,7 @@
 
 #include <glew.h>
 #include <sstream>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "DirectionalLight.h"
 #include "PointLight.h"
@@ -18,8 +19,8 @@ public:
 	Shader();
 	~Shader();
 
-	void CreateFromFiles(const char* fileVert, const char* fileFrag);
-	void CreateFromString(const char* codeVert, const char* codeFrag);
+	void CreateFromFiles(const char* fileVert, const char* fileFrag = nullptr);
+	void CreateFromString(const char* codeVert, const char* codeFrag = nullptr);
 
 	GLuint GetShaderId();
 
@@ -40,6 +41,11 @@ public:
 	void SetPointLights(PointLight* pointLights, GLint lightCount);
 	void SetSpotLights(SpotLight* spotLights, GLint lightCount);
 
+	void SetTexture(GLint textureUnit);
+	void SetDirShadowMap(GLint textureUnit);
+	void SetDirLightTransform(glm::mat4* transform);
+	void SetDirLightTransform(glm::mat4 transform);
+
 	void UseShader();
 	void ClearShader();
 
@@ -47,7 +53,9 @@ public:
 private:
 	GLuint shaderID;
 	GLint unifProjection, unifModel, unifView, unifCamPosition,
-		unifSpecIntensity, unifShininess;
+		unifSpecIntensity, unifShininess,
+		unifTexture,
+		unifDirLightTransform, uniformDirShadowMap;
 
 	struct
 	{
@@ -94,7 +102,7 @@ private:
 	} uniformSpotLights[MAX_SPOT_LIGHTS];
 
 
-	void CompileShader(const char* codeVert, const char* codeFrag);
+	void CompileShader(const char* codeVert, const char* codeFrag = nullptr);
 	void AddShader(GLuint programId, const char* shaderCode, GLenum shaderType);
 
 	std::string ReadFile(const char* fileName);

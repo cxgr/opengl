@@ -8,7 +8,8 @@ public:
     SpotLight();
     SpotLight(glm::vec3 col, float ambIntensity, GLfloat difIntensity,
         glm::vec3 pos, glm::vec3 dir,
-        GLfloat con, GLfloat lin, GLfloat exp, GLfloat edg);
+        GLfloat con, GLfloat lin, GLfloat exp, GLfloat edg,
+        GLsizei shadowRes);
     ~SpotLight();
 
     void UseLight(GLint ambientColorLocation, GLint ambientIntensityLocation,

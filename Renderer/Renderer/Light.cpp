@@ -4,11 +4,19 @@ Light::Light() : color(glm::vec3(1.f)), ambientIntensity(1.f), diffuseIntensity(
 {
 }
 
-Light::Light(glm::vec3 col, GLfloat ambIntensity, GLfloat difIntensity) :
+Light::Light(glm::vec3 col, GLfloat ambIntensity, GLfloat difIntensity, GLsizei shadowRes) :
 	color(col),
 	ambientIntensity(ambIntensity),
-	diffuseIntensity(difIntensity)
+	diffuseIntensity(difIntensity),
+	mtxLightProjection(glm::mat4(1.f)),
+	shadowMap(new ShadowMap())
 {
+	shadowMap->Init(shadowRes);
+}
+
+ShadowMap* Light::GetShadowMap()
+{
+	return shadowMap;
 }
 
 Light::~Light()

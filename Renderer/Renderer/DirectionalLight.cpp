@@ -1,14 +1,17 @@
 #include "DirectionalLight.h"
 
+#include <iostream>
+
 DirectionalLight::DirectionalLight() : Light(),
-	direction(glm::vec3(0.f, -1.f, 0.f))
+                                       direction(glm::vec3(0.f, -1.f, 0.f))
 {
 }
 
-DirectionalLight::DirectionalLight(glm::vec3 col, GLfloat ambIntensity, GLfloat difIntensity, glm::vec3 difDir) :
-	Light(col, ambIntensity, difIntensity),
-	direction(difDir)
+DirectionalLight::DirectionalLight(glm::vec3 col, GLfloat ambIntensity, GLfloat difIntensity, glm::vec3 difDir, GLsizei shadowRes) :
+	Light(col, ambIntensity, difIntensity, shadowRes),
+	direction(glm::normalize(difDir))
 {
+	mtxLightProjection = glm::ortho(-40.f, 40.f, -40.f, 40.f, .1f, 100.f);
 }
 
 DirectionalLight::~DirectionalLight()
@@ -22,4 +25,15 @@ void DirectionalLight::UseLight(GLint colorLocation, GLint ambientIntensityLocat
 	glUniform1f(ambientIntensityLocation, ambientIntensity);
 	glUniform1f(diffuseIntensityLocation, diffuseIntensity);
 	glUniform3fv(diffuseDirectionLocation, 1, glm::value_ptr(direction));
+}
+
+glm::mat4 DirectionalLight::GetLightTransform()
+{
+	auto up = glm::vec3(0.f, 1.f, 0.f);
+	if (1.f - abs(glm::dot(direction, glm::vec3(0.f, -1.f, 0.f))) <= FLT_EPSILON)
+	{
+		up = glm::vec3(0.f, 0.f, -1.f);
+	}
+
+	return mtxLightProjection * glm::lookAt(-direction, glm::vec3(0.f), up);
 }

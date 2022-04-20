@@ -34,7 +34,7 @@ bool Core::Run()
 
 		ProcessInputs(deltaTime);
 		Update(deltaTime);
-		Render();
+		Render_Central();
 
 		lastFrame = SDL_GetTicks64();
 	}
@@ -83,16 +83,16 @@ bool Core::Init()
 	glEnable(GL_DEPTH_TEST);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
 
 	SDL_CaptureMouse(SDL_TRUE);
 	SDL_ShowCursor(SDL_DISABLE);
 
-	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
+	auto aspect = (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT;
+	mtxProjection = glm::perspective(glm::radians(60.f), aspect, .001f, 100.f);
 	mainCam = Camera(glm::vec3(0.f, 0.f, -5.f), glm::vec3(0.f, 1.f, 0.f), 90.f, 0.f, 10.f, 10.f);
 
+	LoadShaders();
 	CreateTestObjects();
 
 	SDL_WarpMouseInWindow(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
@@ -115,16 +115,13 @@ Texture texFloor;
 Material matShiny;
 Material matDull;
 
-static const char* vShader = "Shaders/test.vert";
-static const char* fShader = "Shaders/test.frag";
-
 DirectionalLight mainLight;
 PointLight pointLights[MAX_POINT_LIGHTS];
 GLint pointLightCount = 0;
 SpotLight spotLights[MAX_SPOT_LIGHTS];
 GLint spotLightCount = 0;
 
-ThreeDModel model0, model1, model2;
+ThreeDModel model0, model1, sph0, sphX, sphY, sphZ;
 
 void Core::Update(float deltaTime)
 {
@@ -178,54 +175,72 @@ void Core::ProcessInputs(float deltaTime)
 	mainCam.HandleInput(deltaTime, moveDir, mouseInput);
 }
 
-void Core::Render()
+void Core::Render_Central()
 {
-	glClearColor(0.0f, 0.1f, 0.2f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	///////////////////////////////////////////
+	glCullFace(GL_FRONT);
+	Render_Pass_DirShadow(&mainLight);
+	glCullFace(GL_BACK);
+	Render_Pass_Main(mainCam.GetViewMatrix(), mtxProjection);
 
+	glUseProgram(0);
+	SDL_GL_SwapWindow(window);
+}
+
+void Core::Render_Pass_DirShadow(DirectionalLight* dl)
+{
+	dirShadowShader.UseShader();
+
+	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	dl->GetShadowMap()->Write();
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	auto lightTransform = mainLight.GetLightTransform();
+	dirShadowShader.SetDirLightTransform(&lightTransform);
+
+	uniformModel = dirShadowShader.GetModelLocation();
+	Render_SceneObjects();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Core::Render_Pass_Main(glm::mat4 view, glm::mat4 projection)
+{
 	shaders[0]->UseShader();
 
 	uniformModel = shaders[0]->GetModelLocation();
-	uniformProj = shaders[0]->GetProjectionLocation();
 	uniformView = shaders[0]->GetViewLocation();
+	uniformProj = shaders[0]->GetProjectionLocation();
 	uniformEyePos = shaders[0]->GetCamPosLocation();
 
 	unifSpecIntensity = shaders[0]->GetSpecIntensityLocation();
 	unifShininess = shaders[0]->GetShininessLocation();
 
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	glClearColor(0.0f, 0.1f, 0.2f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(uniformProj, 1, GL_FALSE, glm::value_ptr(projection));
+	glUniform3fv(uniformEyePos, 1, glm::value_ptr(mainCam.GetPosition()));
 
 	shaders[0]->SetDirectionalLight(&mainLight);
+	//auto lightTransform = mainLight.GetLightTransform();
+	shaders[0]->SetDirLightTransform(mainLight.GetLightTransform());
 	shaders[0]->SetPointLights(pointLights, pointLightCount);
 	shaders[0]->SetSpotLights(spotLights, spotLightCount);
 
-	glm::mat4 model(1.0f);
-	//auto tra = glm::translate(glm::mat4(1.f), glm::vec3(triOffset, 0.f, 0.f));
-	auto tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -3.f));
-	auto rot = glm::rotate(glm::mat4(1.f), 3.14f, glm::vec3(0.f, 1.f, 0.f));
-	//model = tra * rot * model;
-	model = tra * rot * model;
-	
-	auto aspect = (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT;
-	auto projMtx = glm::mat4(1.f);
-	projMtx = glm::perspective(glm::radians(60.f), aspect, .001f, 100.f);
+	shaders[0]->SetTexture(0);
+	mainLight.GetShadowMap()->Read(GL_TEXTURE1);
+	shaders[0]->SetDirShadowMap(1);
 
-	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-	glUniformMatrix4fv(uniformProj, 1, GL_FALSE, glm::value_ptr(projMtx));
-	auto view = mainCam.GetViewMatrix();
-	glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(view));
-	glUniform3fv(uniformEyePos, 1, glm::value_ptr(mainCam.GetPosition()));
+	Render_SceneObjects();
 
-	texBrick.UseTexture();
-	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
-	//meshes[0]->RenderMesh();
+}
 
-	model = glm::translate(glm::mat4(1.f), glm::vec3(2.f, 0.f, -4.f));
-	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
-
-	texDirt.UseTexture();
-	matDull.UseMaterial(unifSpecIntensity, unifShininess);
-	//meshes[1]->RenderMesh();
+void Core::Render_SceneObjects()
+{
+	glm::mat4 model(1.0f), tra, rot, scl;
 
 	model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -1.5f, 0.f));
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
@@ -234,36 +249,67 @@ void Core::Render()
 	meshes[2]->RenderMesh();
 
 
-	tra = glm::translate(glm::mat4(1.f), glm::vec3(-8.f, 0.f, 4.f));
-	auto scl = glm::scale(glm::mat4(1.f), glm::vec3(0.008f));
+	tra = glm::translate(glm::mat4(1.f), glm::vec3(-8.f, 0.f, 6.f));
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(0.008f));
 	model = tra * scl * glm::mat4(1.f);
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	model0.Render();
 
 
+	tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 6.f));
 	scl = glm::scale(glm::mat4(1.f), glm::vec3(.3f));
 	rot = glm::rotate(glm::mat4(1.f), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
-	model = rot * scl * glm::mat4(1.f);
+	model = tra * rot * scl * glm::mat4(1.f);
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	model1.Render();
 	
 	model = glm::mat4(1.f);
-	scl = glm::scale(glm::mat4(1.f), glm::vec3(30.f));
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(.1f));
 	model = scl * model;
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
-	model2.Render();
+	sph0.Render();
 
-	glUseProgram(0);
+	model = glm::mat4(1.f);
+	tra = glm::translate(glm::mat4(1.f), glm::vec3(3.f, 0.f, 0.f));
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(.1f));
+	model = tra * scl * model;
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	sphX.Render();
 
-	///////////////////////////////////////////
-	SDL_GL_SwapWindow(window);
+	model = glm::mat4(1.f);
+	tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 2.f, 0.f));
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(.1f));
+	model = tra * scl * model;
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	sphY.Render();
+
+	model = glm::mat4(1.f);
+	tra = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 2.f));
+	scl = glm::scale(glm::mat4(1.f), glm::vec3(.1f));
+	model = tra * scl * model;
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	sphZ.Render();
 }
+
 
 void Core::Cleanup()
 {
+	for (const auto& m : meshes)
+		m->ClearMesh();
 	SDL_Quit();
 }
 
+
+void Core::LoadShaders()
+{
+	Shader* s1 = new Shader();
+	std::cout << "loading phong" << std::endl;
+	s1->CreateFromFiles("Shaders/Phong.vert", "Shaders/Phong.frag");
+	shaders.push_back(s1);
+
+	std::cout << "loading dshadow" << std::endl;
+	dirShadowShader.CreateFromFiles("Shaders/DirectionalShadowMap.vert");
+}
 
 void Core::CreateTestObjects()
 {
@@ -296,19 +342,19 @@ void Core::CreateTestObjects()
 
 	std::vector<GLfloat> floorVerts =
 	{
-		-10.f, 0.f, -10.f,
+		-30.f, 0.f, -30.f,
 		0.f, 0.f,
 		0.f, 1.f, 0.f,
 
-		10.f, 0.f, -10.f,
+		30.f, 0.f, -30.f,
 		10.f, 0.f,
 		0.f, 1.f, 0.f,
 
-		-10.f, 0.f, 10.f,
+		-30.f, 0.f, 30.f,
 		0.f, 10.f,
 		0.f, 1.f, 0.f,
 
-		10.f, 0.f, 10.f,
+		30.f, 0.f, 30.f,
 		10.f, 10.f,
 		0.f, 1.f, 0.f
 	};
@@ -333,9 +379,6 @@ void Core::CreateTestObjects()
 	floorObj->CreateMesh(floorVerts.data(), floorVerts.size(), floorIndices.data(), floorIndices.size());
 	meshes.push_back(floorObj);
 
-	Shader* s1 = new Shader();
-	s1->CreateFromFiles(vShader, fShader);
-	shaders.push_back(s1);
 
 	texBrick = Texture("Assets/brick.png");
 	texBrick.LoadTexture(false);
@@ -348,23 +391,29 @@ void Core::CreateTestObjects()
 	matShiny = Material(1.f, 32);
 	matDull = Material(.3f, 4);
 
-	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.f, .75f, glm::vec3(0.f, -1.f, 1.f));
-	
-	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, 1.f,
-		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f);
+	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.15f, .75f,
+		glm::vec3(0.1f, -1.f, 0.1f), SHADOW_RESOLUTION);
+
+	/*
+	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, .3f,
+		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f, SHADOW_RESOLUTION);
 	pointLightCount++;
-	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, 1.f,
-		glm::vec3(2.f, 1.f, 0.f), .3f, .2f, .1f);
+	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, .3f,
+		glm::vec3(2.f, 1.f, 0.f), .3f, .2f, .1f, SHADOW_RESOLUTION);
 	pointLightCount++;
-	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, 1.f,
-		glm::vec3(.5f, 1.5f, -8.f), .3f, .2f, .1f);
-	pointLightCount++;
+	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, .3f,
+		glm::vec3(.5f, 1.5f, -8.f), .3f, .2f, .1f, SHADOW_RESOLUTION);
+	pointLightCount++; 
 
 	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 2.f,
-		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f);
-	//spotLightCount++;
+		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f, SHADOW_RESOLUTION);
+	spotLightCount++;
+	*/
 
 	model0.LoadModel("Assets\\x-wing.obj");
 	model1.LoadModel("Assets\\uh60.obj");
-	model2.LoadModel("Assets\\sphere.obj");
+	sph0.LoadModel("Assets\\sphere.obj", true);
+	sphX.LoadModel("Assets\\sphere.obj", true);
+	sphY.LoadModel("Assets\\sphere.obj", true);
+	sphZ.LoadModel("Assets\\sphere.obj", true);
 }

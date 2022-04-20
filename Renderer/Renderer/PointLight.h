@@ -6,7 +6,7 @@ class PointLight :
 public:
     PointLight();
     PointLight(glm::vec3 col, float ambIntensity, GLfloat difIntensity,
-		glm::vec3 pos, GLfloat con, GLfloat lin, GLfloat exp);
+        glm::vec3 pos, GLfloat con, GLfloat lin, GLfloat exp, GLsizei shadowRes);
     ~PointLight();
 
     void UseLight(GLint ambientColorLocation, GLint ambientIntensityLocation,
