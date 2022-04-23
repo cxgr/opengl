@@ -19,8 +19,7 @@ public:
 	Shader();
 	~Shader();
 
-	void CreateFromFiles(const char* fileVert, const char* fileFrag = nullptr);
-	void CreateFromString(const char* codeVert, const char* codeFrag = nullptr);
+	void CreateFromFiles(const char* fileVert, const char* fileGeom = nullptr, const char* fileFrag = nullptr);
 
 	GLuint GetShaderId();
 
@@ -35,6 +34,9 @@ public:
 	GLint GetSpecIntensityLocation();
 	GLint GetShininessLocation();
 
+	GLint GetOmniLightPosLocation();
+	GLint GetFarPlaneLocation();
+
 	GLint GetUniformLocationByName(const char* str);
 
 	void SetDirectionalLight(DirectionalLight* dirLight);
@@ -46,6 +48,8 @@ public:
 	void SetDirLightTransform(glm::mat4* transform);
 	void SetDirLightTransform(glm::mat4 transform);
 
+	void SetOmniLightTransforms(std::vector<glm::mat4> matrices);
+
 	void UseShader();
 	void ClearShader();
 
@@ -55,7 +59,9 @@ private:
 	GLint unifProjection, unifModel, unifView, unifCamPosition,
 		unifSpecIntensity, unifShininess,
 		unifTexture,
-		unifDirLightTransform, uniformDirShadowMap;
+		unifDirLightTransform, unifDirShadowMap;
+
+	GLint unifOmniLightPos, unifFarPlane, unifOmniLightTransforms[6];
 
 	struct
 	{
@@ -102,8 +108,9 @@ private:
 	} uniformSpotLights[MAX_SPOT_LIGHTS];
 
 
-	void CompileShader(const char* codeVert, const char* codeFrag = nullptr);
+	void CompileShader(const char* codeVert, const char* codeGeom = nullptr, const char* codeFrag = nullptr);
 	void AddShader(GLuint programId, const char* shaderCode, GLenum shaderType);
+	void SetupUniforms();
 
 	std::string ReadFile(const char* fileName);
 };

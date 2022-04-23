@@ -13,26 +13,25 @@ Shader::~Shader()
 {
 }
 
-void Shader::CreateFromFiles(const char* fileVert, const char* fileFrag)
+void Shader::CreateFromFiles(const char* fileVert, const char* fileGeom, const char* fileFrag)
 {
-	const auto vertCode = ReadFile(fileVert);
-	if (fileFrag)
-	{
-		const auto fragCode = ReadFile(fileFrag);
-		CompileShader(vertCode.c_str(), fragCode.c_str());
-	}
-	else
-	{
-		CompileShader(vertCode.c_str());
-	}
-}
+	std::string codeVert;
+	std::string codeGeom;
+	std::string codeFrag;
 
-void Shader::CreateFromString(const char* codeVert, const char* codeFrag)
-{
-	if (codeFrag)
-		CompileShader(codeVert, codeFrag);
-	else
-		CompileShader(codeVert);
+	codeVert = ReadFile(fileVert);
+	if (fileGeom)
+		codeGeom = ReadFile(fileGeom);
+	if (fileFrag)
+		codeFrag = ReadFile(fileFrag);
+
+	CompileShader
+	(
+		codeVert.empty() ? nullptr : codeVert.c_str(),
+		codeGeom.empty() ? nullptr : codeGeom.c_str(),
+		codeFrag.empty() ? nullptr : codeFrag.c_str()
+	);
+	SetupUniforms();
 }
 
 GLuint Shader::GetShaderId()
@@ -90,6 +89,16 @@ GLint Shader::GetShininessLocation()
 	return unifShininess;
 }
 
+GLint Shader::GetOmniLightPosLocation()
+{
+	return unifOmniLightPos;
+}
+
+GLint Shader::GetFarPlaneLocation()
+{
+	return unifFarPlane;
+}
+
 GLint Shader::GetUniformLocationByName(const char* str)
 {
 	return glGetUniformLocation(shaderID, str);
@@ -126,7 +135,7 @@ void Shader::SetPointLights(PointLight* pointLights, GLint lightCount)
 }
 
 void Shader::SetSpotLights(SpotLight* spotLights, GLint lightCount)
-{	
+{
 	if (lightCount > MAX_SPOT_LIGHTS)
 		lightCount = MAX_SPOT_LIGHTS;
 
@@ -155,7 +164,7 @@ void Shader::SetTexture(GLint textureUnit)
 
 void Shader::SetDirShadowMap(GLint textureUnit)
 {
-	glUniform1i(uniformDirShadowMap, textureUnit);
+	glUniform1i(unifDirShadowMap, textureUnit);
 }
 
 void Shader::SetDirLightTransform(glm::mat4* transform)
@@ -166,6 +175,12 @@ void Shader::SetDirLightTransform(glm::mat4* transform)
 void Shader::SetDirLightTransform(glm::mat4 transform)
 {
 	glUniformMatrix4fv(unifDirLightTransform, 1, GL_FALSE, value_ptr(transform));
+}
+
+void Shader::SetOmniLightTransforms(std::vector<glm::mat4> matrices)
+{
+	for (size_t i = 0; i < 6; ++i)
+		glUniformMatrix4fv(unifOmniLightTransforms[i], 1, GL_FALSE, value_ptr(matrices[i]));
 }
 
 void Shader::UseShader()
@@ -185,14 +200,16 @@ void Shader::ClearShader()
 	unifProjection = 0;
 }
 
-void Shader::CompileShader(const char* codeVert, const char* codeFrag)
+void Shader::CompileShader(const char* codeVert, const char* codeGeom, const char* codeFrag)
 {
 	shaderID = glCreateProgram();
 	if (!shaderID)
 		throw std::runtime_error("shader compilation failed");
 
 	AddShader(shaderID, codeVert, GL_VERTEX_SHADER);
-	if (codeFrag)
+	if (nullptr != codeGeom)
+		AddShader(shaderID, codeGeom, GL_GEOMETRY_SHADER);
+	if (nullptr != codeFrag)
 		AddShader(shaderID, codeFrag, GL_FRAGMENT_SHADER);
 
 	GLint result = 0;
@@ -215,7 +232,33 @@ void Shader::CompileShader(const char* codeVert, const char* codeFrag)
 		std::cout << "shader validation error" << std::endl << errorLog << std::endl;
 		return;
 	}
+}
 
+void Shader::AddShader(GLuint programId, const char* shaderCode, GLenum shaderType)
+{
+	auto thisShader = glCreateShader(shaderType);
+	const GLchar* codePtr[] = { shaderCode };
+	const GLint codeLength[] = { static_cast<GLint>(strlen(shaderCode)) };
+
+	glShaderSource(thisShader, 1, codePtr, codeLength);
+	glCompileShader(thisShader);
+
+	GLint result = 0;
+	GLchar errorLog[1024] = { 0 };
+
+	glGetShaderiv(thisShader, GL_COMPILE_STATUS, &result);
+	if (!result)
+	{
+		glGetShaderInfoLog(thisShader, sizeof(errorLog), nullptr, errorLog);
+		std::cout << "shader compilation error: " << thisShader << "~" << shaderType << std::endl << errorLog << std::endl;
+		return;
+	}
+
+	glAttachShader(programId, thisShader);
+}
+
+void Shader::SetupUniforms()
+{
 	unifModel = glGetUniformLocation(shaderID, "mtxModel");
 	unifProjection = glGetUniformLocation(shaderID, "mtxProj");
 	unifView = glGetUniformLocation(shaderID, "mtxView");
@@ -244,7 +287,7 @@ void Shader::CompileShader(const char* codeVert, const char* codeFrag)
 		uniformPointLights[i].unifDiffuseIntensity = glGetUniformLocation(shaderID, locBuff);
 
 		snprintf(locBuff, sizeof(locBuff), "pointLights[%d].position", i);
-		uniformPointLights[i].unifPosition= glGetUniformLocation(shaderID, locBuff);
+		uniformPointLights[i].unifPosition = glGetUniformLocation(shaderID, locBuff);
 
 		snprintf(locBuff, sizeof(locBuff), "pointLights[%d].constant", i);
 		uniformPointLights[i].unifConstant = glGetUniformLocation(shaderID, locBuff);
@@ -292,30 +335,18 @@ void Shader::CompileShader(const char* codeVert, const char* codeFrag)
 
 	unifTexture = glGetUniformLocation(shaderID, "texture0");
 	unifDirLightTransform = glGetUniformLocation(shaderID, "mtxDirLightTransform");
-	uniformDirShadowMap = glGetUniformLocation(shaderID, "dirShadowMap");
-}
+	unifDirShadowMap = glGetUniformLocation(shaderID, "dirShadowMap");
 
-void Shader::AddShader(GLuint programId, const char* shaderCode, GLenum shaderType)
-{
-	auto thisShader = glCreateShader(shaderType);
-	const GLchar* codePtr[] = { shaderCode };
-	const GLint codeLength[] = { static_cast<GLint>(strlen(shaderCode)) };
+	unifOmniLightPos = glGetUniformLocation(shaderID, "lightPos");
+	unifFarPlane = glGetUniformLocation(shaderID, "farPlane");
 
-	glShaderSource(thisShader, 1, codePtr, codeLength);
-	glCompileShader(thisShader);
-
-	GLint result = 0;
-	GLchar errorLog[1024] = { 0 };
-
-	glGetShaderiv(thisShader, GL_COMPILE_STATUS, &result);
-	if (!result)
+	for (GLint i = 0; i < 6; ++i)
 	{
-		glGetShaderInfoLog(thisShader, sizeof(errorLog), nullptr, errorLog);
-		std::cout << "shader compilation error: " << thisShader << "~" << shaderType << std::endl << errorLog << std::endl;
-		return;
-	}
+		char locBuff[100] = { '\0' };
 
-	glAttachShader(programId, thisShader);
+		snprintf(locBuff, sizeof(locBuff), "lightTransforms[%d]", i);
+		unifOmniLightTransforms[i] = glGetUniformLocation(shaderID, locBuff);
+	}
 }
 
 std::string Shader::ReadFile(const char* fileName)

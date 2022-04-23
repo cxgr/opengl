@@ -14,7 +14,7 @@ bool Core::Run()
 	{
 		Init();
 	}
-	catch (std::runtime_error &e)
+	catch (std::runtime_error& e)
 	{
 		std::cout << e.what() << std::endl;
 		return false;
@@ -89,7 +89,7 @@ bool Core::Init()
 	SDL_ShowCursor(SDL_DISABLE);
 
 	auto aspect = (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT;
-	mtxProjection = glm::perspective(glm::radians(60.f), aspect, .001f, 100.f);
+	mtxProjection = glm::perspective(glm::radians(60.f), aspect, NEAR_PLANE, FAR_PLANE);
 	mainCam = Camera(glm::vec3(0.f, 0.f, -5.f), glm::vec3(0.f, 1.f, 0.f), 90.f, 0.f, 10.f, 10.f);
 
 	LoadShaders();
@@ -107,6 +107,8 @@ GLint uniformEyePos = 0;
 
 GLint unifSpecIntensity = 0;
 GLint unifShininess = 0;
+
+GLint uniformOmniLightPos = 0, uniformFarPlane = 0;
 
 Texture texBrick;
 Texture texDirt;
@@ -127,7 +129,7 @@ void Core::Update(float deltaTime)
 {
 	auto flOffset = mainCam.GetPosition() + mainCam.GetUp() * -.4f;
 	spotLights[0].UpdateTransform(flOffset, mainCam.GetForward());
-} 
+}
 
 void Core::ProcessInputs(float deltaTime)
 {
@@ -179,6 +181,13 @@ void Core::Render_Central()
 {
 	glCullFace(GL_FRONT);
 	Render_Pass_DirShadow(&mainLight);
+
+	for (GLint i = 0; i < pointLightCount; ++i)
+		Render_Pass_OmniDirShadow(&pointLights[i]);
+
+	for (GLint i = 0; i < spotLightCount; ++i)
+		Render_Pass_OmniDirShadow(&spotLights[i]);
+
 	glCullFace(GL_BACK);
 	Render_Pass_Main(mainCam.GetViewMatrix(), mtxProjection);
 
@@ -194,7 +203,7 @@ void Core::Render_Pass_DirShadow(DirectionalLight* dl)
 	dl->GetShadowMap()->Write();
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	auto lightTransform = mainLight.GetLightTransform();
+	auto lightTransform = dl->GetLightTransform();
 	dirShadowShader.SetDirLightTransform(&lightTransform);
 
 	uniformModel = dirShadowShader.GetModelLocation();
@@ -202,6 +211,29 @@ void Core::Render_Pass_DirShadow(DirectionalLight* dl)
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+void Core::Render_Pass_OmniDirShadow(PointLight* pl)
+{
+	omniShadowShader.UseShader();
+
+	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	pl->GetShadowMap()->Write();
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	uniformModel = omniShadowShader.GetModelLocation();
+
+	uniformOmniLightPos = omniShadowShader.GetOmniLightPosLocation();
+	glUniform3fv(uniformOmniLightPos, 1, glm::value_ptr(pl->GetLightPosition()));
+	uniformFarPlane = omniShadowShader.GetFarPlaneLocation();
+	glUniform1f(uniformFarPlane, pl->GetFarPlane());
+	
+	omniShadowShader.SetOmniLightTransforms(pl->GetLightTransform());
+
+	Render_SceneObjects();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 
 void Core::Render_Pass_Main(glm::mat4 view, glm::mat4 projection)
 {
@@ -246,7 +278,14 @@ void Core::Render_SceneObjects()
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	texFloor.UseTexture();
 	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
-	meshes[2]->RenderMesh();
+	//meshes[2]->RenderMesh();
+
+	rot = glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(1.f, 0.f, 0.f));
+	model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 4.5f, 0.f)) * rot;
+	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
+	texFloor.UseTexture();
+	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
+	meshes[3]->RenderMesh();
 
 
 	tra = glm::translate(glm::mat4(1.f), glm::vec3(-8.f, 0.f, 6.f));
@@ -262,7 +301,7 @@ void Core::Render_SceneObjects()
 	model = tra * rot * scl * glm::mat4(1.f);
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	model1.Render();
-	
+
 	model = glm::mat4(1.f);
 	scl = glm::scale(glm::mat4(1.f), glm::vec3(.1f));
 	model = scl * model;
@@ -291,7 +330,6 @@ void Core::Render_SceneObjects()
 	sphZ.Render();
 }
 
-
 void Core::Cleanup()
 {
 	for (const auto& m : meshes)
@@ -299,16 +337,18 @@ void Core::Cleanup()
 	SDL_Quit();
 }
 
-
 void Core::LoadShaders()
 {
 	Shader* s1 = new Shader();
 	std::cout << "loading phong" << std::endl;
-	s1->CreateFromFiles("Shaders/Phong.vert", "Shaders/Phong.frag");
+	s1->CreateFromFiles("Shaders/Phong.vert", nullptr, "Shaders/Phong.frag");
 	shaders.push_back(s1);
 
 	std::cout << "loading dshadow" << std::endl;
 	dirShadowShader.CreateFromFiles("Shaders/DirectionalShadowMap.vert");
+
+	std::cout << "loading oshadow" << std::endl;
+	omniShadowShader.CreateFromFiles("Shaders/OmniShadowMap.vert", "Shaders/OmniShadowMap.geom", "Shaders/OmniShadowMap.frag");
 }
 
 void Core::CreateTestObjects()
@@ -379,6 +419,10 @@ void Core::CreateTestObjects()
 	floorObj->CreateMesh(floorVerts.data(), floorVerts.size(), floorIndices.data(), floorIndices.size());
 	meshes.push_back(floorObj);
 
+	Mesh* ceilObj = new Mesh();
+	ceilObj->CreateMesh(floorVerts.data(), floorVerts.size(), floorIndices.data(), floorIndices.size());
+	meshes.push_back(floorObj);
+
 
 	texBrick = Texture("Assets/brick.png");
 	texBrick.LoadTexture(false);
@@ -392,23 +436,21 @@ void Core::CreateTestObjects()
 	matDull = Material(.3f, 4);
 
 	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.15f, .75f,
-		glm::vec3(0.1f, -1.f, 0.1f), SHADOW_RESOLUTION);
+		glm::vec3(0.f, 1.f, -.23f), SHADOW_RESOLUTION);
 
-	/*
-	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, .3f,
-		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f, SHADOW_RESOLUTION);
+	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, .9f,
+		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
 	pointLightCount++;
-	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, .3f,
-		glm::vec3(2.f, 1.f, 0.f), .3f, .2f, .1f, SHADOW_RESOLUTION);
+	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, .9f,
+		glm::vec3(2.f, 1.f, 0.f), .3f, .2f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
 	pointLightCount++;
-	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, .3f,
-		glm::vec3(.5f, 1.5f, -8.f), .3f, .2f, .1f, SHADOW_RESOLUTION);
-	pointLightCount++; 
+	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, .9f,
+		glm::vec3(.5f, 1.5f, -8.f), .3f, .2f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
+	pointLightCount++;
 
 	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 2.f,
-		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f, SHADOW_RESOLUTION);
-	spotLightCount++;
-	*/
+		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
+	spotLightCount++; 
 
 	model0.LoadModel("Assets\\x-wing.obj");
 	model1.LoadModel("Assets\\uh60.obj");

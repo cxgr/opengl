@@ -13,11 +13,11 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Lights">
-      <UniqueIdentifier>{652bfc67-dc97-44f9-b1be-ad40821756a3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Assets">
       <UniqueIdentifier>{d6103a3f-08ca-40b9-8450-650b3c62ab2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lighting">
+      <UniqueIdentifier>{652bfc67-dc97-44f9-b1be-ad40821756a3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -31,7 +31,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Light.cpp">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClCompile>
     <ClCompile Include="Mesh.cpp">
       <Filter>Assets</Filter>
@@ -46,19 +46,22 @@
       <Filter>Assets</Filter>
     </ClCompile>
     <ClCompile Include="DirectionalLight.cpp">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClCompile>
     <ClCompile Include="PointLight.cpp">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClCompile>
     <ClCompile Include="ThreeDModel.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
     <ClCompile Include="ShadowMap.cpp">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClCompile>
     <ClCompile Include="SpotLight.cpp">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
+    </ClCompile>
+    <ClCompile Include="OmniShadowMap.cpp">
+      <Filter>Lighting</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -72,7 +75,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Light.h">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClInclude>
     <ClInclude Include="Texture.h">
       <Filter>Assets</Filter>
@@ -87,10 +90,10 @@
       <Filter>Assets</Filter>
     </ClInclude>
     <ClInclude Include="DirectionalLight.h">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClInclude>
     <ClInclude Include="PointLight.h">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClInclude>
     <ClInclude Include="Constants.h">
       <Filter>Header Files</Filter>
@@ -99,10 +102,13 @@
       <Filter>Assets</Filter>
     </ClInclude>
     <ClInclude Include="ShadowMap.h">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
     </ClInclude>
     <ClInclude Include="SpotLight.h">
-      <Filter>Lights</Filter>
+      <Filter>Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="OmniShadowMap.h">
+      <Filter>Lighting</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

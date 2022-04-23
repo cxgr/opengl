@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glew.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <vector>
 
 #include "ShadowMap.h"
 

@@ -10,13 +10,19 @@ PointLight::PointLight() :
 }
 
 PointLight::PointLight(glm::vec3 col, float ambIntensity, GLfloat difIntensity,
-	glm::vec3 pos, GLfloat con, GLfloat lin, GLfloat exp, GLsizei shadowRes) :
+	glm::vec3 pos, GLfloat con, GLfloat lin, GLfloat exp,
+	GLsizei shadowRes, GLfloat near, GLfloat far) :
 	Light(col, ambIntensity, difIntensity, shadowRes),
 	position(pos),
 	constant(con),
 	linear(lin),
-	exponent(exp)
+	exponent(exp),
+	farPlane(far)
 {
+	mtxLightProjection = glm::perspective(glm::radians(90.f), 1.f, near, far);
+
+	shadowMap = new OmniShadowMap();
+	shadowMap->Init(shadowRes);
 }
 
 PointLight::~PointLight()
@@ -34,4 +40,30 @@ void PointLight::UseLight(GLint ambientColorLocation, GLint ambientIntensityLoca
 	glUniform1f(constantLocation, constant);
 	glUniform1f(linearLocation, linear);
 	glUniform1f(exponentLocation, exponent);
+}
+
+glm::vec3 PointLight::GetLightPosition()
+{
+	return position;
+}
+
+std::vector<glm::mat4> PointLight::GetLightTransform()
+{
+	std::vector<glm::mat4> lightTransforms;
+
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)));
+
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)));
+
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)));
+
+	return lightTransforms;
+}
+
+GLfloat PointLight::GetFarPlane()
+{
+	return farPlane;
 }

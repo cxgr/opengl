@@ -1,7 +1,5 @@
 #include "DirectionalLight.h"
 
-#include <iostream>
-
 DirectionalLight::DirectionalLight() : Light(),
                                        direction(glm::vec3(0.f, -1.f, 0.f))
 {
@@ -11,7 +9,7 @@ DirectionalLight::DirectionalLight(glm::vec3 col, GLfloat ambIntensity, GLfloat 
 	Light(col, ambIntensity, difIntensity, shadowRes),
 	direction(glm::normalize(difDir))
 {
-	mtxLightProjection = glm::ortho(-40.f, 40.f, -40.f, 40.f, .1f, 100.f);
+	mtxLightProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, NEAR_PLANE, FAR_PLANE);
 }
 
 DirectionalLight::~DirectionalLight()

@@ -1,5 +1,6 @@
 #pragma once
 #include "Light.h"
+#include "Constants.h"
 class DirectionalLight :
     public Light
 {
