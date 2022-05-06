@@ -150,6 +150,10 @@ void Core::ProcessInputs(float deltaTime)
 				isRunning = false;
 				break;
 			}
+			if (e.key.keysym.sym == SDLK_f)
+				lightOn = !lightOn;
+			if (spotLightCount > 0)
+				spotLights[0].SetDiffuseIntensity(lightOn ? 1.f : 0.f);
 			break;
 
 		case SDL_MOUSEMOTION:
@@ -237,6 +241,14 @@ void Core::Render_Pass_OmniDirShadow(PointLight* pl)
 
 void Core::Render_Pass_Main(glm::mat4 view, glm::mat4 projection)
 {
+
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	glClearColor(0.0f, 0.1f, 0.2f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	skybox.DrawSkybox(view, projection);
+
 	shaders[0]->UseShader();
 
 	uniformModel = shaders[0]->GetModelLocation();
@@ -247,11 +259,6 @@ void Core::Render_Pass_Main(glm::mat4 view, glm::mat4 projection)
 	unifSpecIntensity = shaders[0]->GetSpecIntensityLocation();
 	unifShininess = shaders[0]->GetShininessLocation();
 
-	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-	glClearColor(0.0f, 0.1f, 0.2f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(view));
 	glUniformMatrix4fv(uniformProj, 1, GL_FALSE, glm::value_ptr(projection));
 	glUniform3fv(uniformEyePos, 1, glm::value_ptr(mainCam.GetPosition()));
@@ -259,12 +266,12 @@ void Core::Render_Pass_Main(glm::mat4 view, glm::mat4 projection)
 	shaders[0]->SetDirectionalLight(&mainLight);
 	//auto lightTransform = mainLight.GetLightTransform();
 	shaders[0]->SetDirLightTransform(mainLight.GetLightTransform());
-	shaders[0]->SetPointLights(pointLights, pointLightCount);
-	shaders[0]->SetSpotLights(spotLights, spotLightCount);
+	shaders[0]->SetPointLights(pointLights, pointLightCount, 3, 0);
+	shaders[0]->SetSpotLights(spotLights, spotLightCount, 3 + pointLightCount, pointLightCount);
 
-	shaders[0]->SetTexture(0);
-	mainLight.GetShadowMap()->Read(GL_TEXTURE1);
-	shaders[0]->SetDirShadowMap(1);
+	shaders[0]->SetTexture(1);
+	mainLight.GetShadowMap()->Read(GL_TEXTURE2);
+	shaders[0]->SetDirShadowMap(2);
 
 	Render_SceneObjects();
 
@@ -278,14 +285,14 @@ void Core::Render_SceneObjects()
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	texFloor.UseTexture();
 	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
-	//meshes[2]->RenderMesh();
+	meshes[2]->RenderMesh();
 
 	rot = glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(1.f, 0.f, 0.f));
 	model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 4.5f, 0.f)) * rot;
 	glUniformMatrix4fv(uniformModel, 1, false, glm::value_ptr(model));
 	texFloor.UseTexture();
 	matShiny.UseMaterial(unifSpecIntensity, unifShininess);
-	meshes[3]->RenderMesh();
+	//meshes[3]->RenderMesh();
 
 
 	tra = glm::translate(glm::mat4(1.f), glm::vec3(-8.f, 0.f, 6.f));
@@ -435,22 +442,32 @@ void Core::CreateTestObjects()
 	matShiny = Material(1.f, 32);
 	matDull = Material(.3f, 4);
 
-	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.15f, .75f,
-		glm::vec3(0.f, 1.f, -.23f), SHADOW_RESOLUTION);
+	mainLight = DirectionalLight(glm::vec3(1.f, 1.f, 1.f), 0.0f, .0f,
+		glm::vec3(0.f, -1.f, -.23f), SHADOW_RESOLUTION);
 
-	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, .9f,
-		glm::vec3(-4.f, 2.f, 0.f), .3f, .1f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
+	pointLights[0] = PointLight(glm::vec3(0.f, 1.f, 0.f), 0.f, 2.9f,
+		glm::vec3(-4.f, 3.f, 0.f), .3f, .1f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
 	pointLightCount++;
-	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, .9f,
-		glm::vec3(2.f, 1.f, 0.f), .3f, .2f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
+	pointLights[1] = PointLight(glm::vec3(0.f, 0.f, 1.f), 0.f, 2.9f,
+		glm::vec3(2.f, 3.f, 0.f), .3f, .2f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
 	pointLightCount++;
-	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, .9f,
-		glm::vec3(.5f, 1.5f, -8.f), .3f, .2f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
+	pointLights[2] = PointLight(glm::vec3(1.f, .1f, .1f), 0.f, 2.9f,
+		glm::vec3(.5f, 3.f, -8.f), .3f, .2f, .1f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
 	pointLightCount++;
 
-	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 2.f,
-		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), 1.f, 0.f, 0.f, 20.f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
-	spotLightCount++; 
+	spotLights[0] = SpotLight(glm::vec3(.75f, .85f, .5f), 0.f, 1.f,
+		glm::vec3(5.f, 1.f, -6.f), glm::vec3(0.f, -1.f, 0.f), .3f, .01f, 0.0f, 40.f, SHADOW_RESOLUTION, NEAR_PLANE, FAR_PLANE);
+	spotLightCount++;
+
+	std::vector<std::string> skyboxTexPaths;
+	skyboxTexPaths.push_back("Assets\\Skybox\\cupertin-lake_rt.tga");
+	skyboxTexPaths.push_back("Assets\\Skybox\\cupertin-lake_lf.tga");
+	skyboxTexPaths.push_back("Assets\\Skybox\\cupertin-lake_up.tga");
+	skyboxTexPaths.push_back("Assets\\Skybox\\cupertin-lake_dn.tga");
+	skyboxTexPaths.push_back("Assets\\Skybox\\cupertin-lake_bk.tga");
+	skyboxTexPaths.push_back("Assets\\Skybox\\cupertin-lake_ft.tga");
+
+	skybox = Skybox(skyboxTexPaths);
 
 	model0.LoadModel("Assets\\x-wing.obj");
 	model1.LoadModel("Assets\\uh60.obj");
@@ -458,4 +475,10 @@ void Core::CreateTestObjects()
 	sphX.LoadModel("Assets\\sphere.obj", true);
 	sphY.LoadModel("Assets\\sphere.obj", true);
 	sphZ.LoadModel("Assets\\sphere.obj", true);
+
+	for (const auto& s : shaders)
+		s->Validate();
+	dirShadowShader.Validate();
+	omniShadowShader.Validate();
+	skybox.Validate();
 }

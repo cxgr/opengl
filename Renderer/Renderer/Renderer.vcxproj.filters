@@ -63,6 +63,9 @@
     <ClCompile Include="OmniShadowMap.cpp">
       <Filter>Lighting</Filter>
     </ClCompile>
+    <ClCompile Include="Skybox.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="OmniShadowMap.h">
       <Filter>Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="Skybox.h">
+      <Filter>Assets</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

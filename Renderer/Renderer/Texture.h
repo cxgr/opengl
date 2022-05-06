@@ -3,7 +3,7 @@
 #include <glew.h>
 #include <iostream>
 #include <stdexcept>
-#include "stb_image.h"
+#include "Constants.h"
 
 class Texture
 {

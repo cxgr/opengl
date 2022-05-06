@@ -20,6 +20,7 @@ public:
 	~Shader();
 
 	void CreateFromFiles(const char* fileVert, const char* fileGeom = nullptr, const char* fileFrag = nullptr);
+	void Validate();
 
 	GLuint GetShaderId();
 
@@ -40,8 +41,8 @@ public:
 	GLint GetUniformLocationByName(const char* str);
 
 	void SetDirectionalLight(DirectionalLight* dirLight);
-	void SetPointLights(PointLight* pointLights, GLint lightCount);
-	void SetSpotLights(SpotLight* spotLights, GLint lightCount);
+	void SetPointLights(PointLight* pointLights, GLint lightCount, GLint textureUnit, GLuint offset);
+	void SetSpotLights(SpotLight* spotLights, GLint lightCount, GLint textureUnit, GLuint offset);
 
 	void SetTexture(GLint textureUnit);
 	void SetDirShadowMap(GLint textureUnit);
@@ -107,6 +108,11 @@ private:
 		GLint unifEdge;
 	} uniformSpotLights[MAX_SPOT_LIGHTS];
 
+	struct
+	{
+		GLint shadowMap;
+		GLint farPlane;
+	} uniformOmniShadowMaps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
 
 	void CompileShader(const char* codeVert, const char* codeGeom = nullptr, const char* codeFrag = nullptr);
 	void AddShader(GLuint programId, const char* shaderCode, GLenum shaderType);

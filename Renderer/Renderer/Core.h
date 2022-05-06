@@ -18,6 +18,7 @@
 #include "PointLight.h"
 #include "Material.h"
 #include "ThreeDModel.h"
+#include "Skybox.h"
 
 class Core
 {
@@ -55,11 +56,14 @@ public:
 
 private:
 
+	Skybox skybox;
 	std::vector<Mesh*> meshes;
 	std::vector<Shader*> shaders;
 	Shader dirShadowShader, omniShadowShader;
 	Camera mainCam;
 	glm::mat4 mtxProjection;
+
+	bool lightOn = true;
 
 	void LoadShaders();
 	void CreateTestObjects();

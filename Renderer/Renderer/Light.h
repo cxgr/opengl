@@ -15,6 +15,8 @@ public:
 
 	ShadowMap* GetShadowMap();
 
+	void SetAmbientIntensity(float amb);
+	void SetDiffuseIntensity(float dif);
 
 	~Light();
 

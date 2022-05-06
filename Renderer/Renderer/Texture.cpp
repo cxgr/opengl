@@ -27,7 +27,7 @@ bool Texture::LoadTexture(bool isTiled)
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
 
-	auto wrapType = isTiled ? GL_REPEAT : GL_CLAMP_TO_BORDER;
+	auto wrapType = isTiled ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapType);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapType);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -42,9 +42,10 @@ bool Texture::LoadTexture(bool isTiled)
 	return true;
 }
 
+//https://community.khronos.org/t/what-is-a-texture-unit/63250
 void Texture::UseTexture()
 {
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, texId);
 }
 

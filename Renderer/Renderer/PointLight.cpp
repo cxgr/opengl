@@ -51,14 +51,14 @@ std::vector<glm::mat4> PointLight::GetLightTransform()
 {
 	std::vector<glm::mat4> lightTransforms;
 
-	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)));
-	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)));
 
 	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)));
 	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)));
 
-	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)));
-	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)));
+	lightTransforms.push_back(mtxLightProjection * glm::lookAt(position, position + glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)));
 
 	return lightTransforms;
 }

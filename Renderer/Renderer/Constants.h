@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stb_image.h"
+
 constexpr int MAX_POINT_LIGHTS = 12;
 constexpr int MAX_SPOT_LIGHTS = 3;
 

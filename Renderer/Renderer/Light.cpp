@@ -19,6 +19,16 @@ ShadowMap* Light::GetShadowMap()
 	return shadowMap;
 }
 
+void Light::SetAmbientIntensity(float amb)
+{
+	ambientIntensity = amb;
+}
+
+void Light::SetDiffuseIntensity(float dif)
+{
+	diffuseIntensity = dif;
+}
+
 Light::~Light()
 {
 }
